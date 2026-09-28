@@ -30,6 +30,30 @@ textarea{min-height:70px}.full{grid-column:1/-1}
 .small{font-size:13px;color:#777}.money{color:#2e7d32;font-weight:bold}.red{color:#c62828;font-weight:bold}
 .danger{background:#c62828;color:#fff;border:0;border-radius:7px;padding:7px 10px}
 .search{margin-bottom:5px}
+.customer-btn{
+  width:100%;
+  text-align:left;
+  background:none;
+  border:0;
+  padding:0;
+  font:inherit;
+  cursor:pointer
+}
+.customer-btn b{font-size:17px}
+.history-box{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid #eee
+}
+.back-btn{
+  background:#2e7d32;
+  color:#fff;
+  border:0;
+  border-radius:8px;
+  padding:8px 12px;
+  font-weight:bold;
+  margin-bottom:10px
+}
 @media(max-width:420px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
 </style>
 </head>
@@ -245,12 +269,17 @@ function render(){
   });
 
   plist.innerHTML=Object.values(map).map(x=>
-    '<div class="item"><b>'+esc(x.n)+'</b>'+
+    '<div class="item">'+
+    '<button class="customer-btn" onclick="lihatPelanggan(\\''+esc(x.n).replace(/\\\\/g,"\\\\\\\\").replace(/\\'/g,"\\\\'")+\\'\\')">'+
+    '<b>'+esc(x.n)+'</b>'+
     '<div>Total gabah: '+x.k+' kg</div>'+
     '<div>Total beras: '+x.b+' kg</div>'+
     '<div>Total bekatul: '+x.bk+' kg</div>'+
     '<div>Kunjungan: '+x.c+' kali</div>'+
-    '<div class="money">Total jasa: '+rp(x.total)+'</div></div>'
+    '<div class="money">Total jasa: '+rp(x.total)+'</div>'+
+    '<div class="small">Ketuk nama untuk melihat riwayat →</div>'+
+    '</button>'+
+    '</div>'
   ).join("")||'<div class="small">Belum ada pelanggan.</div>';
 
   flist.innerHTML=
@@ -261,6 +290,43 @@ function render(){
       '<div class="item">'+esc(x.n)+'<br>'+x.d+
       '<br><b class="red">'+rp(x.a)+'</b> '+
       '<button class="danger" onclick="hapusE('+x.id+')">Hapus</button></div>'
+    ).join("");
+}
+
+function lihatPelanggan(namaPelanggan){
+  const list=D.giling
+    .filter(x=>x.n.toLowerCase()===namaPelanggan.toLowerCase())
+    .sort((a,b)=>String(b.d).localeCompare(String(a.d)));
+
+  if(!list.length){
+    plist.innerHTML='<div class="small">Belum ada riwayat.</div>';
+    return;
+  }
+
+  const totalK=list.reduce((s,x)=>s+x.k,0);
+  const totalB=list.reduce((s,x)=>s+x.b,0);
+  const totalBk=list.reduce((s,x)=>s+(x.bk||0),0);
+  const totalJ=list.reduce((s,x)=>s+x.total,0);
+
+  plist.innerHTML=
+    '<div class="item">'+
+    '<button class="back-btn" onclick="render()">← Kembali ke pelanggan</button>'+
+    '<h2>'+esc(namaPelanggan)+'</h2>'+
+    '<div><b>Total gabah:</b> '+totalK+' kg</div>'+
+    '<div><b>Total beras:</b> '+totalB+' kg</div>'+
+    '<div><b>Total bekatul:</b> '+totalBk+' kg</div>'+
+    '<div><b>Kunjungan:</b> '+list.length+' kali</div>'+
+    '<div class="money"><b>Total jasa:</b> '+rp(totalJ)+'</div>'+
+    '</div>'+
+    list.map(x=>
+      '<div class="item history-box">'+
+      '<b>'+x.d+'</b>'+
+      '<div>Gabah: <b>'+x.k+' kg</b></div>'+
+      '<div>Beras: <b>'+x.b+' kg</b></div>'+
+      '<div>Bekatul: <b>'+(x.bk||0)+' kg</b></div>'+
+      '<div class="money">Jasa: '+rp(x.total)+'</div>'+
+      (x.c?'<div class="small">Catatan: '+esc(x.c)+'</div>':'')+
+      '</div>'
     ).join("");
 }
 
@@ -316,4 +382,4 @@ if("serviceWorker"in navigator)
 render();
 </script>
 </body>
-</html>
+        </html>
