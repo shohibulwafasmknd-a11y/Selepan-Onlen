@@ -42,6 +42,10 @@ textarea{min-height:70px}.full{grid-column:1/-1}.primary{width:100%;padding:13px
 <label>Hasil beras (kg)</label>
 <input id="beras" type="number" step="0.1">
 </div>
+  <div>
+<label>Bekatul (kg)</label>
+<input id="bekatul" type="number" step="0.1">
+</div>
 <div><label>Tanggal</label><input id="tgl" type="date"></div>
 <div class="full"><label>Catatan</label><textarea id="catatan"></textarea></div>
 <div class="full"><button class="primary" onclick="simpanGiling()">Simpan</button></div></div></div>
@@ -70,7 +74,7 @@ kg.addEventListener("input",hitungUpah);
 tarif.addEventListener("input",hitungUpah);
 function save(){localStorage.setItem(K,JSON.stringify(D));render()}
 function esc(s){return String(s).replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]))}
-function simpanGiling(){let n=nama.value.trim(),k=+kg.value,r=+tarif.value||400,b=+beras.value||0,d=tgl.value||now();if(!n||k<=0)return alert("Isi nama dan berat gabah.");D.giling.unshift({id:Date.now(),n,k,r,b,d,c:catatan.value,total:k*r});save();nama.value=kg.value=beras.value=catatan.value="";alert("Data tersimpan.")}
+function simpanGiling(){let n=nama.value.trim(),k=+kg.value,r=+tarif.value||400,b=+beras.value||0,bk=+bekatul.value||0,d=tgl.value||now();if(!n||k<=0)return alert("Isi nama dan berat gabah.");D.giling.unshift({id:Date.now(),n,k,r,b,bk,d,c:catatan.value,total:k*r});save();nama.value=kg.value=beras.value=bekatul.value=catatan.value="";alert("Data tersimpan.")}
 function simpanE(){let n=ket.value.trim(),a=+jumlah.value,d=tglE.value||now();if(!n||a<=0)return alert("Isi keterangan dan jumlah.");D.expense.unshift({id:Date.now(),n,a,d});save();ket.value=jumlah.value="";alert("Pengeluaran tersimpan.")}
 function render(){let t=now(),m=mon(),g=D.giling,e=D.expense,G=g.filter(x=>x.d===t),E=e.filter(x=>x.d===t),GM=g.filter(x=>x.d.startsWith(m)),EM=e.filter(x=>x.d.startsWith(m));
 let sum=a=>a.reduce((s,x)=>s+(x.total??x.a),0),kgx=a=>a.reduce((s,x)=>s+x.k,0);ti.textContent=rp(sum(G));te.textContent=rp(sum(E));tn.textContent=rp(sum(G)-sum(E));tk.textContent=kgx(G)+" kg";mi.textContent=rp(sum(GM));me.textContent=rp(sum(EM));mn.textContent=rp(sum(GM)-sum(EM));mc.textContent=new Set(GM.map(x=>x.n.toLowerCase())).size;
