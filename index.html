@@ -60,6 +60,14 @@ const K="jasaGilingPadi",D=JSON.parse(localStorage.getItem(K)||'{"giling":[],"ex
 const rp=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n||0);
 const now=()=>new Date().toISOString().slice(0,10),mon=()=>now().slice(0,7);
 tgl.value=now();tglE.value=now();
+  function hitungUpah(){
+  let k=+kg.value||0;
+  let r=+tarif.value||0;
+  totalUpah.value=rp(k*r);
+}
+
+kg.addEventListener("input",hitungUpah);
+tarif.addEventListener("input",hitungUpah);
 function save(){localStorage.setItem(K,JSON.stringify(D));render()}
 function esc(s){return String(s).replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]))}
 function simpanGiling(){let n=nama.value.trim(),k=+kg.value,r=+tarif.value||400,b=+beras.value||0,d=tgl.value||now();if(!n||k<=0)return alert("Isi nama dan berat gabah.");D.giling.unshift({id:Date.now(),n,k,r,b,d,c:catatan.value,total:k*r});save();nama.value=kg.value=beras.value=catatan.value="";alert("Data tersimpan.")}
