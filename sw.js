@@ -1,4 +1,4 @@
-const C = 'giling-padi-v6';
+const C = 'giling-padi-v7';
 
 const A = [
   './',
