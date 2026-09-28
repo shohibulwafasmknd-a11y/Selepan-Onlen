@@ -1,4 +1,4 @@
-const C='giling-padi-v4';
+const C='giling-padi-v5';
 const A=[
   './',
   './index.html',
