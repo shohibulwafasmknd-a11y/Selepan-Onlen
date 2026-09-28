@@ -1,0 +1,63 @@
+<!doctype html><html lang="id"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#2e7d32"><link rel="manifest" href="manifest.json">
+<title>Jasa Giling Padi</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial;background:#f4f7f4;color:#222}
+header{background:#2e7d32;color:#fff;padding:20px;text-align:center}header h1{margin:0 0 5px}
+nav{display:flex;background:#fff;position:sticky;top:0;z-index:2}nav button{flex:1;padding:13px 3px;border:0;background:#fff;font-weight:bold}
+nav button.active{color:#2e7d32;border-bottom:3px solid #2e7d32}main{max-width:700px;margin:auto;padding:15px}
+.page{display:none}.page.active{display:block}.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px #0001}
+h2{margin:0 0 14px;font-size:20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:13px;font-weight:bold;color:#555}input,textarea{width:100%;padding:12px;margin:5px 0 10px;border:1px solid #ddd;border-radius:9px;font-size:16px}
+textarea{min-height:70px}.full{grid-column:1/-1}.primary{width:100%;padding:13px;background:#2e7d32;color:#fff;border:0;border-radius:10px;font-weight:bold;font-size:16px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#e8f5e9;padding:14px;border-radius:12px}.stat b{display:block;margin-top:5px;font-size:18px}
+.item{border:1px solid #eee;border-radius:10px;padding:12px;margin-top:10px}.small{font-size:13px;color:#777}.money{color:#2e7d32;font-weight:bold}.red{color:#c62828;font-weight:bold}.danger{background:#c62828;color:#fff;border:0;border-radius:7px;padding:7px 10px}
+.search{margin-bottom:5px}@media(max-width:420px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style></head><body>
+<header><h1>🌾 Jasa Giling Padi</h1><div>Catatan pelanggan & keuangan</div></header>
+<nav><button class="tab active" data-p="home">Beranda</button><button class="tab" data-p="giling">Giling</button><button class="tab" data-p="pelanggan">Pelanggan</button><button class="tab" data-p="uang">Keuangan</button></nav>
+<main>
+<section id="home" class="page active"><div class="card"><h2>Hari Ini</h2><div class="stats">
+<div class="stat">Pendapatan<b id="ti">Rp0</b></div><div class="stat">Pengeluaran<b id="te" class="red">Rp0</b></div>
+<div class="stat">Bersih<b id="tn">Rp0</b></div><div class="stat">Gabah<b id="tk">0 kg</b></div></div></div>
+<div class="card"><h2>Bulan Ini</h2><div class="stats">
+<div class="stat">Pendapatan<b id="mi">Rp0</b></div><div class="stat">Pengeluaran<b id="me" class="red">Rp0</b></div>
+<div class="stat">Bersih<b id="mn">Rp0</b></div><div class="stat">Pelanggan<b id="mc">0</b></div></div></div></section>
+
+<section id="giling" class="page"><div class="card"><h2>Catat Penggilingan</h2><div class="grid">
+<div class="full"><label>Nama pelanggan</label><input id="nama" placeholder="Contoh: Pak Budi"></div>
+<div><label>Gabah (kg)</label><input id="kg" type="number" step="0.1"></div>
+<div><label>Tarif / kg</label><input id="tarif" type="number" value="400"></div>
+<div><label>Hasil beras (kg)</label><input id="beras" type="number" step="0.1"></div>
+<div><label>Tanggal</label><input id="tgl" type="date"></div>
+<div class="full"><label>Catatan</label><textarea id="catatan"></textarea></div>
+<div class="full"><button class="primary" onclick="simpanGiling()">Simpan</button></div></div></div>
+<div class="card"><h2>Riwayat</h2><input class="search" id="cariG" placeholder="Cari nama..." oninput="render()"><div id="riwayat"></div></div></section>
+
+<section id="pelanggan" class="page"><div class="card"><h2>Data Pelanggan</h2><input class="search" id="cariP" placeholder="Cari nama..." oninput="render()"><div id="plist"></div></div></section>
+
+<section id="uang" class="page"><div class="card"><h2>Tambah Pengeluaran</h2><div class="grid">
+<div class="full"><label>Keterangan</label><input id="ket" placeholder="Contoh: Solar"></div>
+<div><label>Jumlah (Rp)</label><input id="jumlah" type="number"></div><div><label>Tanggal</label><input id="tglE" type="date"></div>
+<div class="full"><button class="primary" onclick="simpanE()">Simpan Pengeluaran</button></div></div></div>
+<div class="card"><h2>Keuangan Bulan Ini</h2><div id="flist"></div></div></section>
+</main>
+<script>
+const K="jasaGilingPadi",D=JSON.parse(localStorage.getItem(K)||'{"giling":[],"expense":[]}');
+const rp=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n||0);
+const now=()=>new Date().toISOString().slice(0,10),mon=()=>now().slice(0,7);
+tgl.value=now();tglE.value=now();
+function save(){localStorage.setItem(K,JSON.stringify(D));render()}
+function esc(s){return String(s).replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]))}
+function simpanGiling(){let n=nama.value.trim(),k=+kg.value,r=+tarif.value||400,b=+beras.value||0,d=tgl.value||now();if(!n||k<=0)return alert("Isi nama dan berat gabah.");D.giling.unshift({id:Date.now(),n,k,r,b,d,c:catatan.value,total:k*r});save();nama.value=kg.value=beras.value=catatan.value="";alert("Data tersimpan.")}
+function simpanE(){let n=ket.value.trim(),a=+jumlah.value,d=tglE.value||now();if(!n||a<=0)return alert("Isi keterangan dan jumlah.");D.expense.unshift({id:Date.now(),n,a,d});save();ket.value=jumlah.value="";alert("Pengeluaran tersimpan.")}
+function render(){let t=now(),m=mon(),g=D.giling,e=D.expense,G=g.filter(x=>x.d===t),E=e.filter(x=>x.d===t),GM=g.filter(x=>x.d.startsWith(m)),EM=e.filter(x=>x.d.startsWith(m));
+let sum=a=>a.reduce((s,x)=>s+(x.total??x.a),0),kgx=a=>a.reduce((s,x)=>s+x.k,0);ti.textContent=rp(sum(G));te.textContent=rp(sum(E));tn.textContent=rp(sum(G)-sum(E));tk.textContent=kgx(G)+" kg";mi.textContent=rp(sum(GM));me.textContent=rp(sum(EM));mn.textContent=rp(sum(GM)-sum(EM));mc.textContent=new Set(GM.map(x=>x.n.toLowerCase())).size;
+let q=(cariG.value||"").toLowerCase();riwayat.innerHTML=g.filter(x=>x.n.toLowerCase().includes(q)).map(x=>'<div class="item"><b>'+esc(x.n)+'</b><div class="small">'+x.d+'</div>Gabah: <b>'+x.k+' kg</b> • Beras: <b>'+x.b+' kg</b><div class="money">Jasa: '+rp(x.total)+'</div><button class="danger" onclick="hapusG('+x.id+')">Hapus</button></div>').join("")||'<div class="small">Belum ada data.</div>';
+let map={};let p=(cariP.value||"").toLowerCase();g.forEach(x=>{if(!x.n.toLowerCase().includes(p))return;let z=map[x.n.toLowerCase()]||{n:x.n,k:0,b:0,total:0,c:0};z.k+=x.k;z.b+=x.b;z.total+=x.total;z.c++;map[x.n.toLowerCase()]=z});plist.innerHTML=Object.values(map).map(x=>'<div class="item"><b>'+esc(x.n)+'</b><div>Total gabah: '+x.k+' kg</div><div>Total beras: '+x.b+' kg</div><div>Kunjungan: '+x.c+' kali</div><div class="money">Total jasa: '+rp(x.total)+'</div></div>').join("")||'<div class="small">Belum ada pelanggan.</div>';
+flist.innerHTML='<div class="item">Pendapatan: <b class="money">'+rp(sum(GM))+'</b></div><div class="item">Pengeluaran: <b class="red">'+rp(sum(EM))+'</b></div><div class="item">Bersih: <b class="money">'+rp(sum(GM)-sum(EM))+'</b></div>'+EM.map(x=>'<div class="item">'+esc(x.n)+'<br>'+x.d+'<br><b class="red">'+rp(x.a)+'</b> <button class="danger" onclick="hapusE('+x.id+')">Hapus</button></div>').join("")}
+function hapusG(id){if(confirm("Hapus?")){D.giling=D.giling.filter(x=>x.id!==id);save()}}function hapusE(id){if(confirm("Hapus?")){D.expense=D.expense.filter(x=>x.id!==id);save()}}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(b.dataset.p).classList.add("active")});
+if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));render();
+</script></body></html>
