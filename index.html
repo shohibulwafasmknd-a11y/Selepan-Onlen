@@ -39,7 +39,7 @@ textarea{min-height:70px}.full{grid-column:1/-1}
   font:inherit;
   cursor:pointer
 }
-.customer-btn b{font-size:17px}
+.customer-btn b{font-size:17px}.customer-btn:active{opacity:.65}
 .history-box{
   margin-top:10px;
   padding-top:10px;
@@ -270,7 +270,9 @@ function render(){
 
   plist.innerHTML=Object.values(map).map(x=>
     '<div class="item">'+
-    '<button class="customer-btn" onclick="lihatPelanggan(\\''+esc(x.n).replace(/\\\\/g,"\\\\\\\\").replace(/\\'/g,"\\\\'")+\\'\\')">'+
+    '<button class="customer-btn" type="button" data-name="'+
+    esc(x.n).replace(/"/g,"&quot;")+
+    '">'+
     '<b>'+esc(x.n)+'</b>'+
     '<div>Total gabah: '+x.k+' kg</div>'+
     '<div>Total beras: '+x.b+' kg</div>'+
@@ -281,6 +283,12 @@ function render(){
     '</button>'+
     '</div>'
   ).join("")||'<div class="small">Belum ada pelanggan.</div>';
+
+  plist.querySelectorAll(".customer-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      lihatPelanggan(btn.getAttribute("data-name"));
+    });
+  });
 
   flist.innerHTML=
     '<div class="item">Pendapatan: <b class="money">'+rp(sum(GM))+'</b></div>'+
@@ -382,4 +390,4 @@ if("serviceWorker"in navigator)
 render();
 </script>
 </body>
-        </html>
+  </html>
