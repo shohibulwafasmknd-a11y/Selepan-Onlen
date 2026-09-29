@@ -342,6 +342,7 @@ function render(){
       '<button class="danger" onclick="hapusE('+x.id+')">Hapus</button></div>'
     ).join("");
 }
+  window.render = render;
 
 function lihatPelanggan(namaPelanggan){
   const list=D.giling.filter(x=>String(x.n||"").toLowerCase()===String(namaPelanggan||"").toLowerCase())
