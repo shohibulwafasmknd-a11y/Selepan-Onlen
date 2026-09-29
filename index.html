@@ -245,13 +245,22 @@ function render(){
   });
 
   plist.innerHTML=Object.values(map).map(x=>
-    '<div class="item"><b>'+esc(x.n)+'</b>'+
-    '<div>Total gabah: '+x.k+' kg</div>'+
-    '<div>Total beras: '+x.b+' kg</div>'+
-    '<div>Total bekatul: '+x.bk+' kg</div>'+
-    '<div>Kunjungan: '+x.c+' kali</div>'+
-    '<div class="money">Total jasa: '+rp(x.total)+'</div></div>'
-  ).join("")||'<div class="small">Belum ada pelanggan.</div>';
+  '<div class="item customer-card" data-name="'+esc(x.n)+'" style="cursor:pointer">'+
+  '<b>'+esc(x.n)+'</b>'+
+  '<div>Total gabah: '+x.k+' kg</div>'+
+  '<div>Total beras: '+x.b+' kg</div>'+
+  '<div>Total bekatul: '+x.bk+' kg</div>'+
+  '<div>Kunjungan: '+x.c+' kali</div>'+
+  '<div class="money">Total jasa: '+rp(x.total)+'</div>'+
+  '<div class="small">Ketuk untuk melihat riwayat →</div>'+
+  '</div>'
+).join("")||'<div class="small">Belum ada pelanggan.</div>';
+
+document.querySelectorAll(".customer-card").forEach(card=>{
+  card.onclick=function(){
+    lihatPelanggan(this.dataset.name);
+  };
+});
 
   flist.innerHTML=
     '<div class="item">Pendapatan: <b class="money">'+rp(sum(GM))+'</b></div>'+
@@ -269,6 +278,48 @@ function hapusG(id){
     D.giling=D.giling.filter(x=>x.id!==id);
     save();
   }
+}
+  function lihatPelanggan(namaPelanggan){
+
+  const list=D.giling
+    .filter(x=>
+      x.n.toLowerCase()===namaPelanggan.toLowerCase()
+    )
+    .sort((a,b)=>String(b.d).localeCompare(String(a.d)));
+
+  if(!list.length){
+    plist.innerHTML='<div class="small">Belum ada riwayat.</div>';
+    return;
+  }
+
+  const totalK=list.reduce((s,x)=>s+(x.k||0),0);
+  const totalB=list.reduce((s,x)=>s+(x.b||0),0);
+  const totalBk=list.reduce((s,x)=>s+(x.bk||0),0);
+  const totalJ=list.reduce((s,x)=>s+(x.total||0),0);
+
+  plist.innerHTML=
+    '<div class="item">'+
+    '<button class="primary" id="kembaliP" style="width:auto">← Kembali</button>'+
+    '<h2>'+esc(namaPelanggan)+'</h2>'+
+    '<div>Total gabah: <b>'+totalK+' kg</b></div>'+
+    '<div>Total beras: <b>'+totalB+' kg</b></div>'+
+    '<div>Total bekatul: <b>'+totalBk+' kg</b></div>'+
+    '<div>Kunjungan: <b>'+list.length+' kali</b></div>'+
+    '<div class="money">Total jasa: '+rp(totalJ)+'</div>'+
+    '</div>'+
+
+    list.map(x=>
+      '<div class="item">'+
+      '<b>'+esc(x.d)+'</b>'+
+      '<div>Gabah: <b>'+x.k+' kg</b></div>'+
+      '<div>Beras: <b>'+x.b+' kg</b></div>'+
+      '<div>Bekatul: <b>'+(x.bk||0)+' kg</b></div>'+
+      '<div class="money">Jasa: '+rp(x.total)+'</div>'+
+      (x.c ? '<div class="small">Catatan: '+esc(x.c)+'</div>' : '')+
+      '</div>'
+    ).join("");
+
+  kembaliP.onclick=render;
 }
 
 function hapusE(id){
