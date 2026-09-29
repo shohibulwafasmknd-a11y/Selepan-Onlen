@@ -385,7 +385,7 @@ document.getElementById("loginBtn").onclick=async()=>{
     await signInWithEmailAndPassword(auth,email,password);
   }catch(err){
     console.error(err);
-    loginMsg.textContent="Login gagal. Periksa email dan password.";
+   loginMsg.textContent="Login gagal: "+err.code;
   }
 };
 
