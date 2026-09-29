@@ -241,6 +241,7 @@ async function simpanGiling(){
     alert("Gagal menyimpan data: "+err.message);
   }
 }
+window.simpanGiling = simpanGiling;
 
 async function simpanE(){
   if(!auth.currentUser)return;
@@ -260,6 +261,7 @@ async function simpanE(){
     alert("Gagal menyimpan pengeluaran: "+err.message);
   }
 }
+window.simpanE = simpanE;
 
 async function hapusG(id){
   if(!confirm("Hapus data penggilingan?"))return;
