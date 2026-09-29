@@ -105,7 +105,7 @@ textarea{min-height:70px}.full{grid-column:1/-1}
 <div><label>Bekatul (kg)</label><input id="bekatul" type="number" step="0.1"></div>
 <div><label>Tanggal</label><input id="tgl" type="date"></div>
 <div class="full"><label>Catatan</label><textarea id="catatan"></textarea></div>
-<div class="full"><button class="primary" onclick="simpanGiling()">Simpan</button></div>
+<div class="full"><button class="primary" id="simpanGilingBtn">Simpan</button></div>
 </div></div>
 <div class="card"><h2>Riwayat</h2><input class="search" id="cariG" placeholder="Cari nama..." oninput="render()"><div id="riwayat"></div></div>
 </section>
@@ -119,7 +119,7 @@ textarea{min-height:70px}.full{grid-column:1/-1}
 <div class="full"><label>Keterangan</label><input id="ket" placeholder="Contoh: Solar"></div>
 <div><label>Jumlah (Rp)</label><input id="jumlah" type="number"></div>
 <div><label>Tanggal</label><input id="tglE" type="date"></div>
-<div class="full"><button class="primary" onclick="simpanE()">Simpan Pengeluaran</button></div>
+<div class="full"><button class="primary" id="simpanEBtn">Simpan Pengeluaran</button></div>
 </div></div>
 <div class="card"><h2>Keuangan Bulan Ini</h2><div id="flist"></div></div>
 </section>
@@ -262,6 +262,8 @@ async function simpanE(){
   }
 }
 window.simpanE = simpanE;
+document.getElementById("simpanGilingBtn").addEventListener("click", simpanGiling);
+document.getElementById("simpanEBtn").addEventListener("click", simpanE);
 
 async function hapusG(id){
   if(!confirm("Hapus data penggilingan?"))return;
