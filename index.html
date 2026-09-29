@@ -227,7 +227,7 @@ async function simpanGiling(){
   let bk=+bekatul.value||0;
   let d=tgl.value||now();
 
-  if(!n||k<=0)return alert("Isi nama dan berat gabah.");
+ if(!n)return alert("Isi nama pelanggan."); 
 
   const id=String(Date.now());
   const data={id,n,k,r,b,bk,d,c:catatan.value,total:k*r};
