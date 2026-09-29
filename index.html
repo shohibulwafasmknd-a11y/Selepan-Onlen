@@ -132,7 +132,7 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs
+  getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -215,34 +215,6 @@ async function migrateLocalDataOnce(){
   }catch(err){
     console.error(err);
     alert("Data lama belum berhasil dipindahkan ke Firestore. Jangan hapus data aplikasi dulu.");
-  }
-}
-
-async function migrasiLocalStorage(){
-  const marker="jasaGilingPadi_firestore_migrated_v1";
-  if(localStorage.getItem(marker)==="yes") return;
-  try{
-    const old=JSON.parse(localStorage.getItem("jasaGilingPadi")||'{"giling":[],"expense":[]}');
-    const gs=Array.isArray(old.giling)?old.giling:[];
-    const es=Array.isArray(old.expense)?old.expense:[];
-    for(const x of gs){
-      const id=String(x.id||Date.now()+Math.random());
-      await setDoc(doc(db,"giling",id),{
-        id:Number(x.id)||Date.now(), n:String(x.n||""), k:+x.k||0, r:+x.r||400,
-        b:+x.b||0, bk:+x.bk||0, d:String(x.d||now()), c:String(x.c||""), total:+x.total||((+x.k||0)*(+x.r||400))
-      });
-    }
-    for(const x of es){
-      const id=String(x.id||Date.now()+Math.random());
-      await setDoc(doc(db,"expense",id),{
-        id:Number(x.id)||Date.now(), n:String(x.n||""), a:+x.a||0, d:String(x.d||now())
-      });
-    }
-    localStorage.setItem(marker,"yes");
-    if(gs.length||es.length) alert("Data lama di HP ini sudah disalin ke Firestore.");
-  }catch(err){
-    console.error("Migrasi gagal:",err);
-    alert("Data lama belum berhasil disalin. Data Firestore tetap aman.");
   }
 }
 
@@ -420,7 +392,7 @@ document.getElementById("loginBtn").onclick=async()=>{
 loginPassword.addEventListener("keydown",e=>{if(e.key==="Enter")loginBtn.click();});
 logoutBtn.onclick=()=>signOut(auth);
 
-onAuthStateChanged(auth,user=>{
+onAuthStateChanged(auth,async user=>{
   if(unsubG){unsubG();unsubG=null}
   if(unsubE){unsubE();unsubE=null}
 
@@ -480,4 +452,4 @@ if("serviceWorker"in navigator)
   addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));
 </script>
 </body>
-</html>
+  </html>
