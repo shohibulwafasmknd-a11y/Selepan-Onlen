@@ -1,4 +1,4 @@
-<!doctype html>
+<doctype html>
 <html lang="id">
 <head>
 <meta charset="utf-8">
@@ -272,6 +272,8 @@ async function hapusE(id){
   try{ await deleteDoc(doc(db,"expense",String(id))); }
   catch(err){ alert("Gagal menghapus: "+err.message); }
 }
+window.hapusG = hapusG;
+window.hapusE = hapusE;
 
 function render(){
   let t=now(), m=mon(), y=year();
