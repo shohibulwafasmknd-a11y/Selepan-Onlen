@@ -30,11 +30,37 @@ textarea{min-height:70px}.full{grid-column:1/-1}
 .small{font-size:13px;color:#777}.money{color:#2e7d32;font-weight:bold}.red{color:#c62828;font-weight:bold}
 .danger{background:#c62828;color:#fff;border:0;border-radius:7px;padding:7px 10px}
 .search{margin-bottom:5px}
+#loginScreen{position:fixed;inset:0;background:#f4f7f4;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:100%;max-width:420px;background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 14px #0002}
+.login-card h1{margin-top:0;color:#2e7d32}
+.login-card button{margin-top:5px}
+#app{display:none}
+.logout{background:#fff;color:#2e7d32;border:1px solid #2e7d32;border-radius:8px;padding:7px 10px;font-weight:bold}
+.userbar{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;padding:8px 15px;border-bottom:1px solid #eee;font-size:12px}
 @media(max-width:420px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
 </style>
 </head>
 <body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>🌾 Jasa Giling Padi</h1>
+    <p>Silakan login untuk membuka data aplikasi.</p>
+    <label>Email</label>
+    <input id="loginEmail" type="email" autocomplete="username" placeholder="Email">
+    <label>Password</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+    <button class="primary" id="loginBtn">Login</button>
+    <div id="loginMsg" class="small" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<div id="app">
 <header><h1>🌾 Jasa Giling Padi</h1><div>Catatan pelanggan & keuangan</div></header>
+<div class="userbar">
+  <span id="userEmail"></span>
+  <button class="logout" id="logoutBtn">Keluar</button>
+</div>
 <nav>
 <button class="tab active" data-p="home">Beranda</button>
 <button class="tab" data-p="giling">Giling</button>
@@ -98,31 +124,51 @@ textarea{min-height:70px}.full{grid-column:1/-1}
 <div class="card"><h2>Keuangan Bulan Ini</h2><div id="flist"></div></div>
 </section>
 </main>
+</div>
 
-<script>
-const K="jasaGilingPadi";
-const D=JSON.parse(localStorage.getItem(K)||'{"giling":[],"expense":[]}');
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDHvmR15R_APLnxwCeEDWuJq419RUxX5nQ",
+  authDomain: "selepanonlen.firebaseapp.com",
+  projectId: "selepanonlen",
+  storageBucket: "selepanonlen.firebasestorage.app",
+  messagingSenderId: "380872618870",
+  appId: "1:380872618870:web:504362d48122fcd3590057"
+};
+
+const appFirebase = initializeApp(firebaseConfig);
+const auth = getAuth(appFirebase);
+const db = getFirestore(appFirebase);
+
+let D={giling:[],expense:[]};
+let unsubG=null, unsubE=null;
 
 const rp=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n||0);
 
-/* Tanggal mengikuti WIB/Indonesia, bukan UTC dan bukan waktu Jepang */
 const now=()=>{
   const d=new Date();
   const parts=new Intl.DateTimeFormat("en-CA",{
-    timeZone:"Asia/Jakarta",
-    year:"numeric",
-    month:"2-digit",
-    day:"2-digit"
+    timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"
   }).formatToParts(d);
   const get=t=>parts.find(x=>x.type===t).value;
   return `${get("year")}-${get("month")}-${get("day")}`;
 };
-
 const mon=()=>now().slice(0,7);
 const year=()=>now().slice(0,4);
 
-tgl.value=now();
-tglE.value=now();
+function setFormDates(){
+  tgl.value=now();
+  tglE.value=now();
+}
+setFormDates();
 
 function hitungUpah(){
   let k=+kg.value||0;
@@ -132,16 +178,76 @@ function hitungUpah(){
 kg.addEventListener("input",hitungUpah);
 tarif.addEventListener("input",hitungUpah);
 
-function save(){
-  localStorage.setItem(K,JSON.stringify(D));
-  render();
-}
-
 function esc(s){
   return String(s).replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]));
 }
 
-function simpanGiling(){
+async function migrateLocalDataOnce(){
+  const marker="selepanOnlen_firestore_migrated_v1";
+  if(localStorage.getItem(marker)==="1") return;
+
+  const raw=localStorage.getItem("jasaGilingPadi");
+  if(!raw){
+    localStorage.setItem(marker,"1");
+    return;
+  }
+
+  try{
+    const old=JSON.parse(raw);
+    const oldG=Array.isArray(old.giling)?old.giling:[];
+    const oldE=Array.isArray(old.expense)?old.expense:[];
+
+    for(const x of oldG){
+      if(x && x.id!=null){
+        await setDoc(doc(db,"giling",String(x.id)),x,{merge:false});
+      }
+    }
+    for(const x of oldE){
+      if(x && x.id!=null){
+        await setDoc(doc(db,"expense",String(x.id)),x,{merge:false});
+      }
+    }
+
+    localStorage.setItem(marker,"1");
+    if(oldG.length || oldE.length){
+      alert("Data lama di HP sudah dipindahkan ke Firestore.");
+    }
+  }catch(err){
+    console.error(err);
+    alert("Data lama belum berhasil dipindahkan ke Firestore. Jangan hapus data aplikasi dulu.");
+  }
+}
+
+async function migrasiLocalStorage(){
+  const marker="jasaGilingPadi_firestore_migrated_v1";
+  if(localStorage.getItem(marker)==="yes") return;
+  try{
+    const old=JSON.parse(localStorage.getItem("jasaGilingPadi")||'{"giling":[],"expense":[]}');
+    const gs=Array.isArray(old.giling)?old.giling:[];
+    const es=Array.isArray(old.expense)?old.expense:[];
+    for(const x of gs){
+      const id=String(x.id||Date.now()+Math.random());
+      await setDoc(doc(db,"giling",id),{
+        id:Number(x.id)||Date.now(), n:String(x.n||""), k:+x.k||0, r:+x.r||400,
+        b:+x.b||0, bk:+x.bk||0, d:String(x.d||now()), c:String(x.c||""), total:+x.total||((+x.k||0)*(+x.r||400))
+      });
+    }
+    for(const x of es){
+      const id=String(x.id||Date.now()+Math.random());
+      await setDoc(doc(db,"expense",id),{
+        id:Number(x.id)||Date.now(), n:String(x.n||""), a:+x.a||0, d:String(x.d||now())
+      });
+    }
+    localStorage.setItem(marker,"yes");
+    if(gs.length||es.length) alert("Data lama di HP ini sudah disalin ke Firestore.");
+  }catch(err){
+    console.error("Migrasi gagal:",err);
+    alert("Data lama belum berhasil disalin. Data Firestore tetap aman.");
+  }
+}
+
+async function simpanGiling(){
+  if(!auth.currentUser)return;
   let n=nama.value.trim();
   let k=+kg.value;
   let r=+tarif.value||400;
@@ -151,182 +257,145 @@ function simpanGiling(){
 
   if(!n||k<=0)return alert("Isi nama dan berat gabah.");
 
-  D.giling.unshift({id:Date.now(),n,k,r,b,bk,d,c:catatan.value,total:k*r});
-  save();
-
-  nama.value="";
-  kg.value="";
-  beras.value="";
-  bekatul.value="";
-  catatan.value="";
-  tgl.value=now();
-
-  hitungUpah();
-  alert("Data tersimpan.");
+  const id=String(Date.now());
+  const data={id,n,k,r,b,bk,d,c:catatan.value,total:k*r};
+  try{
+    await setDoc(doc(db,"giling",id),data);
+    nama.value=""; kg.value=""; beras.value=""; bekatul.value=""; catatan.value=""; tgl.value=now();
+    hitungUpah();
+    alert("Data tersimpan ke database.");
+  }catch(err){
+    console.error(err);
+    alert("Gagal menyimpan data: "+err.message);
+  }
 }
 
-function simpanE(){
+async function simpanE(){
+  if(!auth.currentUser)return;
   let n=ket.value.trim();
   let a=+jumlah.value;
   let d=tglE.value||now();
 
   if(!n||a<=0)return alert("Isi keterangan dan jumlah.");
 
-  D.expense.unshift({id:Date.now(),n,a,d});
-  save();
+  const id=String(Date.now());
+  try{
+    await setDoc(doc(db,"expense",id),{id,n,a,d});
+    ket.value=""; jumlah.value=""; tglE.value=now();
+    alert("Pengeluaran tersimpan ke database.");
+  }catch(err){
+    console.error(err);
+    alert("Gagal menyimpan pengeluaran: "+err.message);
+  }
+}
 
-  ket.value="";
-  jumlah.value="";
-  tglE.value=now();
+async function hapusG(id){
+  if(!confirm("Hapus data penggilingan?"))return;
+  try{ await deleteDoc(doc(db,"giling",String(id))); }
+  catch(err){ alert("Gagal menghapus: "+err.message); }
+}
 
-  alert("Pengeluaran tersimpan.");
+async function hapusE(id){
+  if(!confirm("Hapus pengeluaran?"))return;
+  try{ await deleteDoc(doc(db,"expense",String(id))); }
+  catch(err){ alert("Gagal menghapus: "+err.message); }
 }
 
 function render(){
-  let t=now();
-  let m=mon();
-  let y=year();
-  let g=D.giling;
-  let e=D.expense;
+  let t=now(), m=mon(), y=year();
+  let g=D.giling, e=D.expense;
 
-  let G=g.filter(x=>x.d===t);
-  let E=e.filter(x=>x.d===t);
-  let GM=g.filter(x=>x.d.startsWith(m));
-  let EM=e.filter(x=>x.d.startsWith(m));
-  let GY=g.filter(x=>x.d.startsWith(y));
-  let EY=e.filter(x=>x.d.startsWith(y));
+  let G=g.filter(x=>x.d===t), E=e.filter(x=>x.d===t);
+  let GM=g.filter(x=>String(x.d||"").startsWith(m));
+  let EM=e.filter(x=>String(x.d||"").startsWith(m));
+  let GY=g.filter(x=>String(x.d||"").startsWith(y));
+  let EY=e.filter(x=>String(x.d||"").startsWith(y));
 
-  let sum=a=>a.reduce((s,x)=>s+(x.total??x.a),0);
-  let kgx=a=>a.reduce((s,x)=>s+x.k,0);
-  let bkx=a=>a.reduce((s,x)=>s+(x.bk||0),0);
+  let sum=a=>a.reduce((s,x)=>s+(x.total??x.a??0),0);
+  let kgx=a=>a.reduce((s,x)=>s+(+x.k||0),0);
+  let bkx=a=>a.reduce((s,x)=>s+(+x.bk||0),0);
 
-  ti.textContent=rp(sum(G));
-  te.textContent=rp(sum(E));
-  tn.textContent=rp(sum(G)-sum(E));
-  tk.textContent=kgx(G)+" kg";
-  tbk.textContent=bkx(G)+" kg";
-
-  mi.textContent=rp(sum(GM));
-  me.textContent=rp(sum(EM));
-  mn.textContent=rp(sum(GM)-sum(EM));
-  mkg.textContent=kgx(GM)+" kg";
-  mbk.textContent=bkx(GM)+" kg";
-  mc.textContent=new Set(GM.map(x=>x.n.toLowerCase())).size;
-
-  yi.textContent=rp(sum(GY));
-  ye.textContent=rp(sum(EY));
-  yn.textContent=rp(sum(GY)-sum(EY));
-  ykg.textContent=kgx(GY)+" kg";
-  ybk.textContent=bkx(GY)+" kg";
-  yc.textContent=new Set(GY.map(x=>x.n.toLowerCase())).size;
-  yt.textContent=GY.length;
+  ti.textContent=rp(sum(G)); te.textContent=rp(sum(E)); tn.textContent=rp(sum(G)-sum(E));
+  tk.textContent=kgx(G)+" kg"; tbk.textContent=bkx(G)+" kg";
+  mi.textContent=rp(sum(GM)); me.textContent=rp(sum(EM)); mn.textContent=rp(sum(GM)-sum(EM));
+  mkg.textContent=kgx(GM)+" kg"; mbk.textContent=bkx(GM)+" kg";
+  mc.textContent=new Set(GM.map(x=>String(x.n||"").toLowerCase())).size;
+  yi.textContent=rp(sum(GY)); ye.textContent=rp(sum(EY)); yn.textContent=rp(sum(GY)-sum(EY));
+  ykg.textContent=kgx(GY)+" kg"; ybk.textContent=bkx(GY)+" kg";
+  yc.textContent=new Set(GY.map(x=>String(x.n||"").toLowerCase())).size; yt.textContent=GY.length;
 
   let q=(cariG.value||"").toLowerCase();
-  riwayat.innerHTML=g.filter(x=>x.n.toLowerCase().includes(q)).map(x=>
+  riwayat.innerHTML=g.filter(x=>String(x.n||"").toLowerCase().includes(q)).map(x=>
     '<div class="item"><b>'+esc(x.n)+'</b>'+
-    '<div class="small">'+x.d+'</div>'+
+    '<div class="small">'+esc(x.d)+'</div>'+
     'Gabah: <b>'+x.k+' kg</b> • Beras: <b>'+x.b+' kg</b> • Bekatul: <b>'+(x.bk||0)+' kg</b>'+
     '<div class="money">Jasa: '+rp(x.total)+'</div>'+
     '<button class="danger" onclick="hapusG('+x.id+')">Hapus</button></div>'
   ).join("")||'<div class="small">Belum ada data.</div>';
 
-  let map={};
-  let p=(cariP.value||"").toLowerCase();
-
+  let map={}, p=(cariP.value||"").toLowerCase();
   g.forEach(x=>{
-    if(!x.n.toLowerCase().includes(p))return;
-    let z=map[x.n.toLowerCase()]||{n:x.n,k:0,b:0,bk:0,total:0,c:0};
-    z.k+=x.k;
-    z.b+=x.b;
-    z.bk+=(x.bk||0);
-    z.total+=x.total;
-    z.c++;
-    map[x.n.toLowerCase()]=z;
+    let name=String(x.n||"");
+    if(!name.toLowerCase().includes(p))return;
+    let key=name.toLowerCase();
+    let z=map[key]||{n:name,k:0,b:0,bk:0,total:0,c:0};
+    z.k+=+x.k||0; z.b+=+x.b||0; z.bk+=+x.bk||0; z.total+=+x.total||0; z.c++;
+    map[key]=z;
   });
 
   plist.innerHTML=Object.values(map).map(x=>
-  '<div class="item customer-card" data-name="'+esc(x.n)+'" style="cursor:pointer">'+
-  '<b>'+esc(x.n)+'</b>'+
-  '<div>Total gabah: '+x.k+' kg</div>'+
-  '<div>Total beras: '+x.b+' kg</div>'+
-  '<div>Total bekatul: '+x.bk+' kg</div>'+
-  '<div>Kunjungan: '+x.c+' kali</div>'+
-  '<div class="money">Total jasa: '+rp(x.total)+'</div>'+
-  '<div class="small">Ketuk untuk melihat riwayat →</div>'+
-  '</div>'
-).join("")||'<div class="small">Belum ada pelanggan.</div>';
+    '<div class="item customer-card" data-name="'+esc(x.n)+'" style="cursor:pointer">'+
+    '<b>'+esc(x.n)+'</b>'+
+    '<div>Total gabah: '+x.k+' kg</div>'+
+    '<div>Total beras: '+x.b+' kg</div>'+
+    '<div>Total bekatul: '+x.bk+' kg</div>'+
+    '<div>Kunjungan: '+x.c+' kali</div>'+
+    '<div class="money">Total jasa: '+rp(x.total)+'</div>'+
+    '<div class="small">Ketuk untuk melihat riwayat →</div></div>'
+  ).join("")||'<div class="small">Belum ada pelanggan.</div>';
 
-document.querySelectorAll(".customer-card").forEach(card=>{
-  card.onclick=function(){
-    lihatPelanggan(this.dataset.name);
-  };
-});
+  document.querySelectorAll(".customer-card").forEach(card=>{
+    card.onclick=()=>lihatPelanggan(card.dataset.name);
+  });
 
   flist.innerHTML=
     '<div class="item">Pendapatan: <b class="money">'+rp(sum(GM))+'</b></div>'+
     '<div class="item">Pengeluaran: <b class="red">'+rp(sum(EM))+'</b></div>'+
     '<div class="item">Bersih: <b class="money">'+rp(sum(GM)-sum(EM))+'</b></div>'+
     EM.map(x=>
-      '<div class="item">'+esc(x.n)+'<br>'+x.d+
+      '<div class="item">'+esc(x.n)+'<br>'+esc(x.d)+
       '<br><b class="red">'+rp(x.a)+'</b> '+
       '<button class="danger" onclick="hapusE('+x.id+')">Hapus</button></div>'
     ).join("");
 }
 
-function hapusG(id){
-  if(confirm("Hapus data penggilingan?")){
-    D.giling=D.giling.filter(x=>x.id!==id);
-    save();
-  }
-}
-  function lihatPelanggan(namaPelanggan){
-
-  const list=D.giling
-    .filter(x=>
-      x.n.toLowerCase()===namaPelanggan.toLowerCase()
-    )
+function lihatPelanggan(namaPelanggan){
+  const list=D.giling.filter(x=>String(x.n||"").toLowerCase()===String(namaPelanggan||"").toLowerCase())
     .sort((a,b)=>String(b.d).localeCompare(String(a.d)));
+  if(!list.length){plist.innerHTML='<div class="small">Belum ada riwayat.</div>';return;}
 
-  if(!list.length){
-    plist.innerHTML='<div class="small">Belum ada riwayat.</div>';
-    return;
-  }
-
-  const totalK=list.reduce((s,x)=>s+(x.k||0),0);
-  const totalB=list.reduce((s,x)=>s+(x.b||0),0);
-  const totalBk=list.reduce((s,x)=>s+(x.bk||0),0);
-  const totalJ=list.reduce((s,x)=>s+(x.total||0),0);
+  const totalK=list.reduce((s,x)=>s+(+x.k||0),0);
+  const totalB=list.reduce((s,x)=>s+(+x.b||0),0);
+  const totalBk=list.reduce((s,x)=>s+(+x.bk||0),0);
+  const totalJ=list.reduce((s,x)=>s+(+x.total||0),0);
 
   plist.innerHTML=
-    '<div class="item">'+
-    '<button class="primary" id="kembaliP" style="width:auto">← Kembali</button>'+
+    '<div class="item"><button class="primary" id="kembaliP" style="width:auto">← Kembali</button>'+
     '<h2>'+esc(namaPelanggan)+'</h2>'+
     '<div>Total gabah: <b>'+totalK+' kg</b></div>'+
     '<div>Total beras: <b>'+totalB+' kg</b></div>'+
     '<div>Total bekatul: <b>'+totalBk+' kg</b></div>'+
     '<div>Kunjungan: <b>'+list.length+' kali</b></div>'+
-    '<div class="money">Total jasa: '+rp(totalJ)+'</div>'+
-    '</div>'+
-
+    '<div class="money">Total jasa: '+rp(totalJ)+'</div></div>'+
     list.map(x=>
-      '<div class="item">'+
-      '<b>'+esc(x.d)+'</b>'+
+      '<div class="item"><b>'+esc(x.d)+'</b>'+
       '<div>Gabah: <b>'+x.k+' kg</b></div>'+
       '<div>Beras: <b>'+x.b+' kg</b></div>'+
       '<div>Bekatul: <b>'+(x.bk||0)+' kg</b></div>'+
       '<div class="money">Jasa: '+rp(x.total)+'</div>'+
-      (x.c ? '<div class="small">Catatan: '+esc(x.c)+'</div>' : '')+
-      '</div>'
+      (x.c?'<div class="small">Catatan: '+esc(x.c)+'</div>':'')+'</div>'
     ).join("");
-
   kembaliP.onclick=render;
-}
-
-function hapusE(id){
-  if(confirm("Hapus pengeluaran?")){
-    D.expense=D.expense.filter(x=>x.id!==id);
-    save();
-  }
 }
 
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
@@ -336,35 +405,79 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
   document.getElementById(b.dataset.p).classList.add("active");
 });
 
-/* Otomatis memperbarui dashboard ketika tanggal WIB berganti */
-let tanggalTerakhir=now();
+document.getElementById("loginBtn").onclick=async()=>{
+  const email=loginEmail.value.trim(), password=loginPassword.value;
+  loginMsg.textContent="";
+  if(!email||!password){loginMsg.textContent="Isi email dan password.";return;}
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+  }catch(err){
+    console.error(err);
+    loginMsg.textContent="Login gagal. Periksa email dan password.";
+  }
+};
 
+loginPassword.addEventListener("keydown",e=>{if(e.key==="Enter")loginBtn.click();});
+logoutBtn.onclick=()=>signOut(auth);
+
+onAuthStateChanged(auth,user=>{
+  if(unsubG){unsubG();unsubG=null}
+  if(unsubE){unsubE();unsubE=null}
+
+  if(!user){
+    app.style.display="none";
+    loginScreen.style.display="flex";
+    userEmail.textContent="";
+    return;
+  }
+
+  loginScreen.style.display="none";
+  app.style.display="block";
+  userEmail.textContent=user.email||"";
+
+  await migrateLocalDataOnce();
+
+  unsubG=onSnapshot(collection(db,"giling"),snap=>{
+    D.giling=snap.docs.map(d=>d.data()).sort((a,b)=>String(b.d||"").localeCompare(String(a.d||"")) || (+b.id||0)-(+a.id||0));
+    render();
+  },err=>{
+    console.error(err);
+    alert("Gagal membaca data giling: "+err.message);
+  });
+
+  unsubE=onSnapshot(collection(db,"expense"),snap=>{
+    D.expense=snap.docs.map(d=>d.data()).sort((a,b)=>String(b.d||"").localeCompare(String(a.d||"")) || (+b.id||0)-(+a.id||0));
+    render();
+  },err=>{
+    console.error(err);
+    alert("Gagal membaca data pengeluaran: "+err.message);
+  });
+
+  setFormDates();
+  hitungUpah();
+  render();
+});
+
+let tanggalTerakhir=now();
 setInterval(()=>{
   const tanggalSekarang=now();
-
   if(tanggalSekarang!==tanggalTerakhir){
     tanggalTerakhir=tanggalSekarang;
-    tgl.value=tanggalSekarang;
-    tglE.value=tanggalSekarang;
+    setFormDates();
     render();
   }
 },60000);
 
-/* Saat aplikasi dibuka kembali setelah lama di-background */
 document.addEventListener("visibilitychange",()=>{
   if(!document.hidden){
-    const tanggalSekarang=now();
-    tanggalTerakhir=tanggalSekarang;
-    tgl.value=tanggalSekarang;
-    tglE.value=tanggalSekarang;
+    tanggalTerakhir=now();
+    setFormDates();
     render();
   }
 });
 
 if("serviceWorker"in navigator)
   addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));
-
-render();
 </script>
 </body>
-  </html>
+</html>
