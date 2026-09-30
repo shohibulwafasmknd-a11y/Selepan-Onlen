@@ -65,6 +65,7 @@ textarea{min-height:70px}.full{grid-column:1/-1}
 <button class="tab active" data-p="home">Beranda</button>
 <button class="tab" data-p="giling">Giling</button>
 <button class="tab" data-p="pelanggan">Pelanggan</button>
+<button class="tab" data-p="laporan">Laporan</button>
 <button class="tab" data-p="uang">Keuangan</button>
 </nav>
 <main>
@@ -113,7 +114,41 @@ textarea{min-height:70px}.full{grid-column:1/-1}
 <section id="pelanggan" class="page">
 <div class="card"><h2>Data Pelanggan</h2><input class="search" id="cariP" placeholder="Cari nama..." oninput="render()"><div id="plist"></div></div>
 </section>
+<section id="laporan" class="page">
+  <div class="card">
+    <h2>📊 Laporan</h2>
 
+    <div class="grid">
+      <div>
+        <label>Jenis Laporan</label>
+        <select id="jenisLaporan" style="width:100%;padding:12px;margin:5px 0 10px;border:1px solid #ddd;border-radius:9px;font-size:16px">
+          <option value="hari">Harian</option>
+          <option value="bulan">Bulanan</option>
+          <option value="tahun">Tahunan</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Tanggal</label>
+        <input id="tanggalLaporan" type="date">
+      </div>
+
+      <div class="full">
+        <button class="primary" id="lihatLaporanBtn">📊 Lihat Laporan</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="hasilLaporan">
+      <div class="small">Pilih jenis laporan lalu tekan Lihat Laporan.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <button class="primary" id="kembaliLaporanBtn">← Kembali</button>
+  </div>
+</section>
 <section id="uang" class="page">
 <div class="card"><h2>Tambah Pengeluaran</h2><div class="grid">
 <div class="full"><label>Keterangan</label><input id="ket" placeholder="Contoh: Solar"></div>
@@ -347,6 +382,90 @@ function render(){
     ).join("");
 }
   window.render = render;
+// ===============================
+// LAPORAN HARIAN / BULANAN / TAHUNAN
+// ===============================
+
+tanggalLaporan.value=now();
+
+function tampilkanLaporan(){
+  const jenis=jenisLaporan.value;
+  const tanggal=tanggalLaporan.value||now();
+
+  let listG=[];
+  let listE=[];
+  let judul="";
+
+  if(jenis==="hari"){
+    listG=D.giling.filter(x=>x.d===tanggal);
+    listE=D.expense.filter(x=>x.d===tanggal);
+    judul="Laporan Harian - "+tanggal;
+  }
+
+  if(jenis==="bulan"){
+    const bulan=tanggal.slice(0,7);
+    listG=D.giling.filter(x=>String(x.d||"").startsWith(bulan));
+    listE=D.expense.filter(x=>String(x.d||"").startsWith(bulan));
+    judul="Laporan Bulanan - "+bulan;
+  }
+
+  if(jenis==="tahun"){
+    const tahun=tanggal.slice(0,4);
+    listG=D.giling.filter(x=>String(x.d||"").startsWith(tahun));
+    listE=D.expense.filter(x=>String(x.d||"").startsWith(tahun));
+    judul="Laporan Tahunan - "+tahun;
+  }
+
+  const totalPendapatan=listG.reduce((s,x)=>s+(+x.total||0),0);
+  const totalPengeluaran=listE.reduce((s,x)=>s+(+x.a||0),0);
+  const totalGabah=listG.reduce((s,x)=>s+(+x.k||0),0);
+  const totalBeras=listG.reduce((s,x)=>s+(+x.b||0),0);
+  const totalBekatul=listG.reduce((s,x)=>s+(+x.bk||0),0);
+  const bersih=totalPendapatan-totalPengeluaran;
+
+  hasilLaporan.innerHTML=
+    '<h2>📊 '+judul+'</h2>'+
+    
+    '<div class="stats">'+
+      '<div class="stat">Pendapatan<b>'+rp(totalPendapatan)+'</b></div>'+
+      '<div class="stat">Pengeluaran<b class="red">'+rp(totalPengeluaran)+'</b></div>'+
+      '<div class="stat">Bersih<b>'+rp(bersih)+'</b></div>'+
+      '<div class="stat">Gabah<b>'+totalGabah+' kg</b></div>'+
+      '<div class="stat">Beras<b>'+totalBeras+' kg</b></div>'+
+      '<div class="stat">Bekatul<b>'+totalBekatul+' kg</b></div>'+
+    '</div>'+
+
+    '<div class="item"><b>Jumlah transaksi: '+listG.length+'</b></div>'+
+
+    '<h2 style="margin-top:18px">📋 Detail Penggilingan</h2>'+
+
+    (listG.map(x=>
+      '<div class="item">'+
+        '<b>'+esc(x.n)+'</b>'+
+        '<div class="small">'+esc(x.d)+'</div>'+
+        '<div>Gabah: <b>'+x.k+' kg</b></div>'+
+        '<div>Beras: <b>'+(x.b||0)+' kg</b></div>'+
+        '<div>Bekatul: <b>'+(x.bk||0)+' kg</b></div>'+
+        '<div class="money">Upah: '+rp(x.total)+'</div>'+
+      '</div>'
+    ).join("") || '<div class="small">Tidak ada transaksi penggilingan.</div>')+
+
+    '<h2 style="margin-top:18px">💸 Detail Pengeluaran</h2>'+
+
+    (listE.map(x=>
+      '<div class="item">'+
+        '<b>'+esc(x.n)+'</b>'+
+        '<div class="small">'+esc(x.d)+'</div>'+
+        '<div class="red">'+rp(x.a)+'</div>'+
+      '</div>'
+    ).join("") || '<div class="small">Tidak ada pengeluaran.</div>');
+}
+  document.getElementById("lihatLaporanBtn").onclick=tampilkanLaporan;
+
+document.getElementById("kembaliLaporanBtn").onclick=()=>{
+  document.querySelector('.tab[data-p="home"]').click();
+};
+  }
 
 function lihatPelanggan(namaPelanggan){
   const list=D.giling.filter(x=>String(x.n||"").toLowerCase()===String(namaPelanggan||"").toLowerCase())
