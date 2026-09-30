@@ -1,4 +1,4 @@
-const C = 'giling-padi-v25';
+const C = 'giling-padi-v26';
 
 const A = [
   './',
@@ -6,6 +6,7 @@ const A = [
   './manifest.json',
   './icon-192-3.png',
   './icon-512-2.png'
+  './header-padi.png'
 ];
 
 self.addEventListener('install', e => {
