@@ -9,8 +9,32 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial;background:#f4f7f4;color:#222}
-header{background:#2e7d32;color:#fff;padding:20px;text-align:center}
-header h1{margin:0 0 5px}
+header{
+  position:relative;
+  overflow:hidden;
+  min-height:190px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:30px 20px 28px;
+  color:#fff;
+  text-align:center;
+  background:
+    linear-gradient(180deg,rgba(0,90,35,.18),rgba(0,90,35,.72)),
+    url('header-padi.png') center center/cover no-repeat;
+}
+
+header h1{
+  margin:0 0 5px;
+  font-size:32px;
+  font-weight:800;
+  text-shadow:0 2px 5px #0008;
+}
+
+header div{
+  font-size:18px;
+  text-shadow:0 2px 4px #0008;
+}
 nav{
   position:fixed;
   left:10px;
