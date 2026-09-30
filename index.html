@@ -465,7 +465,6 @@ function tampilkanLaporan(){
 document.getElementById("kembaliLaporanBtn").onclick=()=>{
   document.querySelector('.tab[data-p="home"]').click();
 };
-  }
 
 function lihatPelanggan(namaPelanggan){
   const list=D.giling.filter(x=>String(x.n||"").toLowerCase()===String(namaPelanggan||"").toLowerCase())
