@@ -9,7 +9,9 @@ const A = [
   './header-padi.png',
   './pelanggan.png',
   './keuangan.png',
-  './laporan.png'
+  './laporan.png',
+  './beranda.png',
+  './giling.png'
 ];
 
 // Install service worker baru
