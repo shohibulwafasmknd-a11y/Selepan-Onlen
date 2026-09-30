@@ -6,7 +6,8 @@ const A = [
   './manifest.json',
   './icon-192-3.png',
   './icon-512-2.png',
-  './header-padi.png'
+  './header-padi.png',
+  './pelanggan.png'
 ];
 
 // Install service worker baru
